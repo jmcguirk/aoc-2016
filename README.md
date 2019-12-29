@@ -1,2 +1,2 @@
-# aoc-2016
-Advent of Code - 2016 Edition
+# aoc-2015
+Advent of Code - 2015 Edition
