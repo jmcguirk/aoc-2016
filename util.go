@@ -33,6 +33,35 @@ func FormatDurationMS(durationMS int64) string{
 	return fmt.Sprintf("%.2fh", hr);
 }
 
+func PowerSet(s []string) [][]string {
+	if s == nil {
+		return nil
+	}
+	r := [][]string{[]string{}}
+	for _, es := range s {
+		var u [][]string
+		for _, er := range r {
+			u = append(u, append(er, es))
+		}
+		r = append(r, u...)
+	}
+	return r
+}
+
+func PowerSetInt(s []int) [][]int {
+	if s == nil {
+		return nil
+	}
+	r := [][]int{[]int{}}
+	for _, es := range s {
+		var u [][]int
+		for _, er := range r {
+			u = append(u, append(er, es))
+		}
+		r = append(r, u...)
+	}
+	return r
+}
 
 type IntVec2 struct{
 	X 		int;

@@ -21,6 +21,8 @@ type EncryptedKioskEntry struct{
 	IsDecoy bool;
 	RoomNumber int;
 	CheckSum string;
+	EncryptedValue string;
+	DecryptedValue string;
 	CalculatedCheckSum string;
 	Histogram map[uint8]*EncryptedKioskHist;
 	HistFlat []*EncryptedKioskHist;
@@ -49,7 +51,7 @@ func (this *EncryptedKiosk) Load(fileName string) error {
 			if(err != nil){
 				return err;
 			}
-			Log.Info("%s - decoy? %t - %s vs %s", entry.RawString, entry.IsDecoy, entry.CheckSum, entry.CalculatedCheckSum)
+			//Log.Info("%s - decoy? %t - %s vs %s", entry.RawString, entry.IsDecoy, entry.CheckSum, entry.CalculatedCheckSum)
 			this.Entries = append(this.Entries, entry);
 		}
 	}
@@ -67,8 +69,13 @@ func (this *EncryptedKioskEntry) Parse(line string, lineNum int) error {
 	this.Histogram = make(map[uint8]*EncryptedKioskHist);
 
 	signatureParts := strings.Split(lineParts[0], "-");
+	this.EncryptedValue = "";
 	for i := 0; i < len(signatureParts) - 1; i++{
+		if(i > 0){
+			this.EncryptedValue += " ";
+		}
 		segment := strings.TrimSpace(signatureParts[i]);
+		this.EncryptedValue += segment;
 		for _, c := range segment {
 			_, exists := this.Histogram[uint8(c)];
 			if(!exists){
@@ -103,6 +110,26 @@ func (this *EncryptedKioskEntry) Parse(line string, lineNum int) error {
 		this.CalculatedCheckSum += fmt.Sprintf("%c", c.Letter);
 	}
 	this.IsDecoy = this.CalculatedCheckSum != this.CheckSum;
+
+	if(!this.IsDecoy){
+		this.DecryptedValue = "";
+		for _, c := range this.EncryptedValue{
+			//shift := int(' ');
+			if(c != ' '){
+				shift := int(c) - int('a');
+				shift += this.RoomNumber;
+				shift = shift % 26;
+				shift += int('a');
+				this.DecryptedValue += fmt.Sprintf("%c", shift);
+			} else{
+				this.DecryptedValue += " ";
+			}
+
+
+		}
+		Log.Info("%d - %s", this.RoomNumber, this.DecryptedValue)
+	}
+
 
 	return nil;
 }

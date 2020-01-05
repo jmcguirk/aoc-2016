@@ -1,14 +1,14 @@
 package main
 
-type Problem4A struct {
+type Problem4B struct {
 
 }
 
-func (this *Problem4A) Solve() {
-	Log.Info("Problem 4A solver beginning!")
+func (this *Problem4B) Solve() {
+	Log.Info("Problem 4B solver beginning!")
 
 	kiosk := EncryptedKiosk{};
-	err := kiosk.Load("source-data/input-day-04a.txt");
+	err := kiosk.Load("source-data/input-day-04b.txt");
 	if(err != nil){
 		Log.FatalError(err);
 	}

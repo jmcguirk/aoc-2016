@@ -77,6 +77,18 @@ func (this *IntegerGrid2D) CountIf(x int, y int, targetVal int) int {
 	return 0;
 }
 
+func (this *IntegerGrid2D) CountAll(targetVal int) int {
+	sum := 0;
+	for _, v := range this.Data{
+		for _, v2 := range *v{
+			if(v2 == targetVal){
+				sum++;
+			}
+		}
+	}
+	return sum;
+}
+
 func (this *IntegerGrid2D) Clone() *IntegerGrid2D {
 	res := &IntegerGrid2D{};
 	res.Init();
