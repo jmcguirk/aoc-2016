@@ -9,35 +9,24 @@ import (
 
 // This file is the most likely to change between years and contains specific intcode instruction implementations
 
-const IntCodeHalf = "hlf";
-const IntCodeTriple = "tpl";
-const IntCodeIncrement = "inc";
-const IntCodeJump = "jmp";
-const IntCodeJumpEven = "jie";
-const IntCodeJumpOne = "jio";
+const IntCodeCpy = "cpy";
+const IntCodeInc = "inc";
+const IntCodeDec = "dec";
+const IntCodeJump = "jnz";
 
 func ParseIntcodeInstruction(line string, lineNum int) (IntcodeInstruction, error){
 	parts := strings.Split(line, " ");
 	var res IntcodeInstruction;
 	op := strings.TrimSpace(parts[0]);
 	switch(op){
-		case IntCodeHalf:
-			res = &IntCodeInstructionHalf{};
-			break;
-		case IntCodeTriple:
-			res = &IntCodeInstructionTriple{};
-			break;
-		case IntCodeIncrement:
-			res = &IntCodeInstructionIncrement{};
-			break;
+		case IntCodeCpy:
+			res = &IntCodeInstructionCopy{};
+		case IntCodeInc:
+			res = &IntCodeInstructionInc{};
+		case IntCodeDec:
+			res = &IntCodeInstructionDec{};
 		case IntCodeJump:
 			res = &IntCodeInstructionJump{};
-			break;
-		case IntCodeJumpEven:
-			res = &IntCodeInstructionJumpEven{};
-			break;
-		case IntCodeJumpOne:
-			res = &IntCodeInstructionJumpOne{};
 			break;
 	}
 	if(res == nil){
@@ -51,111 +40,56 @@ func ParseIntcodeInstruction(line string, lineNum int) (IntcodeInstruction, erro
 	return res, nil;
 }
 
-type IntCodeInstructionHalf struct{
-	Register int;
+type IntCodeInstructionCopy struct{
+	RegisterSource int;
+	HasLiteralSource bool;
+	RegisterTarget int;
 	LineNum int;
 }
 
-func (this *IntCodeInstructionHalf) Init(lineNum int){
+func (this *IntCodeInstructionCopy) Init(lineNum int){
 	this.LineNum = lineNum
 }
 
-func (this *IntCodeInstructionHalf) Execute(machine *IntcodeMachine) (bool, error) {
-	val := machine.GetRegisterValue(this.Register);
-	machine.SetRegisterValue(this.Register, val / 2);
+func (this *IntCodeInstructionCopy) Execute(machine *IntcodeMachine) (bool, error) {
+
+	val := this.RegisterSource;
+	if(!this.HasLiteralSource){
+		val = machine.GetRegisterValue(val);
+	}
+
+	machine.SetRegisterValue(this.RegisterTarget, val);
 	machine.AdvanceInstructionPointer();
 	return false, nil;
 }
 
-func (this *IntCodeInstructionHalf) Describe() string {
-	return fmt.Sprintf("%d.) %s %c", this.LineNum, IntCodeHalf, this.Register);
+func (this *IntCodeInstructionCopy) Describe() string {
+	if(this.HasLiteralSource){
+		return fmt.Sprintf("%d.) %s %d %c", this.LineNum, IntCodeCpy, this.RegisterSource, this.RegisterTarget);
+	} else{
+		return fmt.Sprintf("%d.) %s %c %c", this.LineNum, IntCodeCpy, this.RegisterSource, this.RegisterTarget);
+	}
 }
 
-func (this *IntCodeInstructionHalf) Parse(lineParts []string) error {
-	if(len(lineParts) != 2){
-		return errors.New("Incorrect number of args to half instruction");
+func (this *IntCodeInstructionCopy) Parse(lineParts []string) error {
+	if(len(lineParts) != 3){
+		return errors.New("Incorrect number of args to copy instruction");
 	}
 	regRaw := strings.TrimSpace(lineParts[1]);
 	val, err := strconv.Atoi(regRaw);
 	if(err != nil){
-		this.Register = int(lineParts[1][0]); // Interpret this as an ascii value instead
+		this.RegisterSource = int(lineParts[1][0]); // Interpret this as an ascii value instead
 	} else{
-		this.Register = val;
+		this.RegisterSource = val;
+		this.HasLiteralSource = true;
 	}
 
-	return nil;
-}
-
-
-
-
-type IntCodeInstructionTriple struct{
-	Register int;
-	LineNum int;
-}
-
-func (this *IntCodeInstructionTriple) Init(lineNum int){
-	this.LineNum = lineNum
-}
-
-func (this *IntCodeInstructionTriple) Execute(machine *IntcodeMachine) (bool, error) {
-	val := machine.GetRegisterValue(this.Register);
-	machine.SetRegisterValue(this.Register, val * 3);
-	machine.AdvanceInstructionPointer();
-	return false, nil;
-}
-
-func (this *IntCodeInstructionTriple) Describe() string {
-	return fmt.Sprintf("%d.) %s %c", this.LineNum, IntCodeTriple, this.Register);
-}
-
-func (this *IntCodeInstructionTriple) Parse(lineParts []string) error {
-	if(len(lineParts) != 2){
-		return errors.New("Incorrect number of args to triple instruction");
-	}
-	regRaw := strings.TrimSpace(lineParts[1]);
-	val, err := strconv.Atoi(regRaw);
+	regTarget := strings.TrimSpace(lineParts[2]);
+	val, err = strconv.Atoi(regTarget);
 	if(err != nil){
-		this.Register = int(lineParts[1][0]); // Interpret this as an ascii value instead
+		this.RegisterTarget = int(lineParts[2][0]); // Interpret this as an ascii value instead
 	} else{
-		this.Register = val;
-	}
-
-	return nil;
-}
-
-
-
-type IntCodeInstructionIncrement struct{
-	Register int;
-	LineNum int;
-}
-
-func (this *IntCodeInstructionIncrement) Init(lineNum int){
-	this.LineNum = lineNum
-}
-
-func (this *IntCodeInstructionIncrement) Execute(machine *IntcodeMachine) (bool, error) {
-	val := machine.GetRegisterValue(this.Register);
-	machine.SetRegisterValue(this.Register, val + 1);
-	machine.AdvanceInstructionPointer();
-	return false, nil;
-}
-
-func (this *IntCodeInstructionIncrement) Describe() string {
-	return fmt.Sprintf("%d.) %s %c", this.LineNum, IntCodeIncrement, this.Register);
-}
-
-func (this *IntCodeInstructionIncrement) Parse(lineParts []string) error {
-	if(len(lineParts) != 2){
-		return errors.New("Incorrect number of args to increment instruction");
-	}
-	regRaw := strings.TrimSpace(lineParts[1]);
-	val, err := strconv.Atoi(regRaw);
-	if(err != nil){
-		this.Register = int(lineParts[1][0]); // Interpret this as an ascii value instead
-	} else{
-		this.Register = val;
+		this.RegisterTarget = val;
 	}
 
 	return nil;
@@ -163,6 +97,8 @@ func (this *IntCodeInstructionIncrement) Parse(lineParts []string) error {
 
 
 type IntCodeInstructionJump struct{
+	RegisterSource int;
+	HasLiteralSource bool;
 	JumpAmount int;
 	LineNum int;
 }
@@ -172,117 +108,113 @@ func (this *IntCodeInstructionJump) Init(lineNum int){
 }
 
 func (this *IntCodeInstructionJump) Execute(machine *IntcodeMachine) (bool, error) {
-	machine.AdvanceInstructionPointerByAmount(this.JumpAmount);
+
+	val := this.RegisterSource;
+	if(!this.HasLiteralSource){
+		val = machine.GetRegisterValue(val);
+	}
+
+	if(val != 0){
+		machine.AdvanceInstructionPointerByAmount(this.JumpAmount);
+	} else{
+		machine.AdvanceInstructionPointer();
+	}
+
 	return false, nil;
 }
 
 func (this *IntCodeInstructionJump) Describe() string {
-	return fmt.Sprintf("%d.) %s %d", this.LineNum, IntCodeJump, this.JumpAmount);
+	if(this.HasLiteralSource){
+		return fmt.Sprintf("%d.) %s %d %c", this.LineNum, IntCodeJump, this.RegisterSource, this.JumpAmount);
+	} else{
+		return fmt.Sprintf("%d.) %s %c %c", this.LineNum, IntCodeJump, this.RegisterSource, this.JumpAmount);
+	}
 }
 
 func (this *IntCodeInstructionJump) Parse(lineParts []string) error {
-	if(len(lineParts) != 2){
+	if(len(lineParts) != 3){
 		return errors.New("Incorrect number of args to jump instruction");
 	}
 	regRaw := strings.TrimSpace(lineParts[1]);
 	val, err := strconv.Atoi(regRaw);
 	if(err != nil){
-		return err;
+		this.RegisterSource = int(lineParts[1][0]); // Interpret this as an ascii value instead
+	} else{
+		this.RegisterSource = val;
+		this.HasLiteralSource = true;
 	}
-	this.JumpAmount = val;
+
+	regTarget := strings.TrimSpace(lineParts[2]);
+	val, err = strconv.Atoi(regTarget);
+	if(err != nil){
+		return err;
+	} else{
+		this.JumpAmount = val;
+	}
 
 	return nil;
 }
 
-
-type IntCodeInstructionJumpEven struct{
-	JumpAmount int;
-	Register int;
+type IntCodeInstructionInc struct{
+	RegisterTarget int;
 	LineNum int;
 }
 
-func (this *IntCodeInstructionJumpEven) Init(lineNum int){
+func (this *IntCodeInstructionInc) Init(lineNum int){
 	this.LineNum = lineNum
 }
 
-func (this *IntCodeInstructionJumpEven) Execute(machine *IntcodeMachine) (bool, error) {
-	jmp := 1;
-	if(machine.GetRegisterValue(this.Register) % 2 == 0){
-		jmp = this.JumpAmount;
-	}
-	machine.AdvanceInstructionPointerByAmount(jmp);
+func (this *IntCodeInstructionInc) Execute(machine *IntcodeMachine) (bool, error) {
+
+	val := this.RegisterTarget;
+	val = machine.GetRegisterValue(val);
+	val++;
+
+	machine.SetRegisterValue(this.RegisterTarget, val);
+	machine.AdvanceInstructionPointer();
 	return false, nil;
 }
 
-func (this *IntCodeInstructionJumpEven) Describe() string {
-	return fmt.Sprintf("%d.) %s %c, %d", this.LineNum, IntCodeJumpEven, this.Register, this.JumpAmount);
+func (this *IntCodeInstructionInc) Describe() string {
+	return fmt.Sprintf("%d.) %s %c", this.LineNum, IntCodeInc, this.RegisterTarget);
 }
 
-func (this *IntCodeInstructionJumpEven) Parse(lineParts []string) error {
-	if(len(lineParts) != 3){
-		return errors.New("Incorrect number of args to jump if even instruction");
+func (this *IntCodeInstructionInc) Parse(lineParts []string) error {
+	if(len(lineParts) != 2){
+		return errors.New("Incorrect number of args to inc instruction");
 	}
-	regRaw := strings.TrimSpace(lineParts[2]);
-	val, err := strconv.Atoi(regRaw);
-	if(err != nil){
-		return err;
-	}
-	this.JumpAmount = val;
-
-	regRaw = strings.ReplaceAll(strings.TrimSpace(lineParts[1]), ",", "");
-	val, err = strconv.Atoi(regRaw);
-	if(err != nil){
-		this.Register = int(regRaw[0]); // Interpret this as an ascii value instead
-	} else{
-		this.Register = val;
-	}
-
-
+	this.RegisterTarget = int(lineParts[1][0]); // Interpret this as an ascii value
 	return nil;
 }
 
-type IntCodeInstructionJumpOne struct{
-	JumpAmount int;
-	Register int;
+type IntCodeInstructionDec struct{
+	RegisterTarget int;
 	LineNum int;
 }
 
-func (this *IntCodeInstructionJumpOne) Init(lineNum int){
+func (this *IntCodeInstructionDec) Init(lineNum int){
 	this.LineNum = lineNum
 }
 
-func (this *IntCodeInstructionJumpOne) Execute(machine *IntcodeMachine) (bool, error) {
-	jmp := 1;
-	if(machine.GetRegisterValue(this.Register) == 1){
-		jmp = this.JumpAmount;
-	}
-	machine.AdvanceInstructionPointerByAmount(jmp);
+func (this *IntCodeInstructionDec) Execute(machine *IntcodeMachine) (bool, error) {
+
+	val := this.RegisterTarget;
+	val = machine.GetRegisterValue(val);
+	val--;
+
+	machine.SetRegisterValue(this.RegisterTarget, val);
+	machine.AdvanceInstructionPointer();
 	return false, nil;
 }
 
-func (this *IntCodeInstructionJumpOne) Describe() string {
-	return fmt.Sprintf("%d.) %s %c, %d", this.LineNum, IntCodeJumpOne, this.Register, this.JumpAmount);
+func (this *IntCodeInstructionDec) Describe() string {
+	return fmt.Sprintf("%d.) %s %c", this.LineNum, IntCodeDec, this.RegisterTarget);
 }
 
-func (this *IntCodeInstructionJumpOne) Parse(lineParts []string) error {
-	if(len(lineParts) != 3){
-		return errors.New("Incorrect number of args to jump if one instruction");
+func (this *IntCodeInstructionDec) Parse(lineParts []string) error {
+	if(len(lineParts) != 2){
+		return errors.New("Incorrect number of args to dec instruction");
 	}
-	regRaw := strings.TrimSpace(lineParts[2]);
-	val, err := strconv.Atoi(regRaw);
-	if(err != nil){
-		return err;
-	}
-	this.JumpAmount = val;
-
-	regRaw = strings.ReplaceAll(strings.TrimSpace(lineParts[1]), ",", "");
-	val, err = strconv.Atoi(regRaw);
-	if(err != nil){
-		this.Register = int(regRaw[0]); // Interpret this as an ascii value instead
-	} else{
-		this.Register = val;
-	}
-
-
+	this.RegisterTarget = int(lineParts[1][0]); // Interpret this as an ascii value
 	return nil;
 }

@@ -140,6 +140,15 @@ func IntToDigitArray (val int) []int{
 	return res;
 }
 
+func IntArrayToString (val []int) string{
+
+	var str strings.Builder;
+	for _, v := range val{
+		str.WriteString(fmt.Sprintf("%d", v));
+	}
+	return str.String();
+}
+
 func SpeakAndSayArray(state []int) []int {
 	res := make([]int, 0);
 	iter := 1;
@@ -443,4 +452,24 @@ func Fibonacci(n uint) uint64 {
 func TriangularTerm(n int) int {
 	// a*n^2 + b * n + c
 	return (n*(n+1))/2;
+}
+
+// Hamming weight calculation - uses https://stackoverflow.com/questions/48039141/how-to-find-if-there-is-a-even-or-a-odd-number-of-1-bit
+func HasOddNumberInBinary(x int) bool {
+	first := 0x11 | (0x11 << 8);
+	second := first | (first << 16);
+	mask := 0xf | (0xf << 8);
+	count := 0;
+	sum := second & x;
+	sum = (x>>1 & second) + sum;
+	sum = (x>>2 & second) + sum;
+	sum = (x>>3 & second) + sum;
+
+	sum = sum + (sum >> 16);
+
+	sum = ((sum & mask) + (mask & (sum >> 4)));
+	count = (((sum >> 8) + sum) & 0x3f);
+
+	//count is the Hamming weight, & by 0x1 to see if it's odd
+	return (count & 0x1) > 0;
 }

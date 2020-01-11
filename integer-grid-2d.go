@@ -759,3 +759,75 @@ func (this *IntegerGrid2D) ShortestPath(from *IntVec2, to *IntVec2, blockValue i
 	res = append(res, to);
 	return res;
 }
+
+
+
+func (this *IntegerGrid2D) ExploreWithDistance(from *IntVec2, blockValue int, maxDist int) *IntegerGrid2D {
+
+	//Log.Info("Requesting path from %s to %s", from.ToString(), to.ToString());
+
+	visitedNodes := &IntegerGrid2D{};
+	visitedNodes.Init();
+	minCostToStart := &IntegerGrid2D{};
+	minCostToStart.Init();
+
+	nearestToStart := make(map[int]int);
+
+	frontier := make([]*IntVec2, 0);
+	frontier = append(frontier, from);
+	frontierMap := make(map[int]int);
+	frontierMap[from.TileIndex()] = 1;
+
+	minCostToStart.SetValue(from.X, from.Y, 1);
+
+	for {
+		if (len(frontier) <= 0) {
+			break;
+		}
+		sort.SliceStable(frontier, func(i, j int) bool {
+			vI := frontier[i];
+			vJ := frontier[j];
+			return minCostToStart.GetValue(vI.X, vI.Y) < minCostToStart.GetValue(vJ.X, vJ.Y);
+		});
+
+		next := frontier[0];
+		frontier = frontier[1:];
+		delete(frontierMap, next.TileIndex());
+		costToHere := minCostToStart.GetValue(next.X, next.Y);
+		edges := this.GenerateEdges(next);
+		for _, edge := range edges{
+			if(visitedNodes.HasValue(edge.X, edge.Y)){
+				continue;
+			}
+			if(!this.HasValue(edge.X, edge.Y)){
+				continue;
+			}
+			if(this.GetValue(edge.X, edge.Y) == blockValue){
+				continue;
+			}
+			bestToHere := int(math.MaxInt32);
+
+			bestCostExists := minCostToStart.HasValue(edge.X, edge.Y);
+			if(bestCostExists){
+				bestToHere = minCostToStart.GetValue(edge.X, edge.Y);
+			}
+
+			if(costToHere + 1 < bestToHere){
+				minCostToStart.SetValue(edge.X, edge.Y, costToHere + 1);
+				//Log.Info("Point %d to %d", edge.TileIndex(), next.TileIndex());
+				nearestToStart[edge.TileIndex()] = next.TileIndex();
+				//minCostToStart[neighbor.Id] = costToHere + edge.Weight;
+				//nearestToStart[neighbor.Id] = next;
+				_, alreadyEnqueued := frontierMap[edge.TileIndex()];
+				if(!alreadyEnqueued && costToHere <= maxDist){
+					frontierMap[edge.TileIndex()] = 1;
+					frontier = append(frontier, edge);
+				}
+			}
+
+		}
+		visitedNodes.SetValue(next.X, next.Y, this.GetValue(next.X, next.Y));
+	}
+
+	return visitedNodes;
+}
